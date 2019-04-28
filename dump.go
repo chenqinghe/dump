@@ -14,6 +14,15 @@ func Dump(v ...interface{}) {
 	}
 }
 
+func Sdump(v ...interface{}) string {
+	buf := bytes.NewBuffer(nil)
+	for _, vv := range v {
+		buf.WriteString(dump(vv, 0))
+		buf.WriteString("\n")
+	}
+	return buf.String()
+}
+
 func dump(v interface{}, depth int) string {
 	var output string
 	switch vv := v.(type) {

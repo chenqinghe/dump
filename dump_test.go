@@ -128,3 +128,7 @@ func BenchmarkDump2(b *testing.B) {
 	}
 	//  200000	      9949 ns/op
 }
+
+func TestSdump(t *testing.T) {
+	t.Log(Sdump(1,"2",3.123))
+}
