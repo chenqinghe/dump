@@ -182,10 +182,11 @@ func dumpMap(v reflect.Value, depth int) string {
 	buf.WriteString(fmt.Sprintf("map[%s]%s{ \n", typ.Key().String(), typ.Elem().String()))
 	for _, key := range v.MapKeys() {
 		ident(depth+1, buf)
-		buf.WriteString(fmt.Sprintf("[%s] => { \n", printMapKey(key)))
+		buf.WriteString(fmt.Sprintf("[%s] => \n", printMapKey(key)))
 		buf.WriteString(dump(v.MapIndex(key).Interface(), depth+1))
 		buf.WriteString("\n")
 	}
+	buf.WriteString("}")
 	return buf.String()
 }
 
