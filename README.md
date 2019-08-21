@@ -1,4 +1,4 @@
-# vars
+# dump
 
 格式化打印go变量，类似于php的var_dump()函数。
 
