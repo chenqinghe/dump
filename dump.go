@@ -1,16 +1,20 @@
-package vars
+package dump
 
 import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
 	"strconv"
+	"unsafe"
 )
 
 func Dump(v ...interface{}) {
+	//_, file, line, _ := runtime.Caller(1)
+	//fmt.Printf("%s:%d ", file, line)
 	for _, vv := range v {
-		fmt.Println(dump(vv, 0))
+		Fdump(os.Stdout, vv)
 	}
 }
 
@@ -21,6 +25,10 @@ func Sdump(v ...interface{}) string {
 		buf.WriteString("\n")
 	}
 	return buf.String()
+}
+
+func Fdump(w io.Writer, v ...interface{}) (int, error) {
+	return w.Write([]byte(Sdump(v...)))
 }
 
 func dump(v interface{}, depth int) string {
@@ -39,7 +47,7 @@ func dump(v interface{}, depth int) string {
 		case reflect.Map:
 			output = dumpMap(reflect.ValueOf(v), depth)
 		case reflect.Struct:
-			output = dumpStruct(reflect.ValueOf(v), depth)
+			output = dumpStruct(reflect.ValueOf(v), depth, false)
 		case reflect.Slice:
 			output = dumpSlice(reflect.ValueOf(v), depth)
 		case reflect.Chan:
@@ -87,7 +95,7 @@ func dumpInt(v interface{}, depth int) string {
 		buf.WriteString("(uint64) ")
 		buf.WriteString(strconv.FormatUint(uint64(t), 10))
 	default:
-		buf.WriteString("unknown interger type")
+		panic("unknown interger type")
 	}
 
 	return buf.String()
@@ -96,7 +104,7 @@ func dumpInt(v interface{}, depth int) string {
 func dumpString(s string, depth int) string {
 	buf := bytes.NewBuffer(nil)
 	ident(depth, buf)
-	buf.WriteString("(string:")
+	buf.WriteString("(string: ")
 	buf.WriteString(strconv.FormatInt(int64(len(s)), 10))
 	buf.WriteString(") ")
 	buf.WriteString(`"`)
@@ -116,7 +124,7 @@ func dumpFloat(v interface{}, depth int) string {
 		buf.WriteString("(float64) ")
 		buf.WriteString(strconv.FormatFloat(float64(t), 'f', -1, 64))
 	default:
-		buf.WriteString("unkown float type")
+		panic("unkown float type")
 	}
 	return buf.String()
 }
@@ -151,28 +159,47 @@ func dumpComplex(v interface{}, depth int) string {
 	return buf.String()
 }
 
-func dumpStruct(v reflect.Value, depth int) string {
+func dumpStruct(v reflect.Value, depth int, isPtr bool) string {
 	typ := v.Type()
 	buf := bytes.NewBuffer(nil)
 	ident(depth, buf)
 	buf.WriteString("struct(")
+	if isPtr {
+		buf.WriteString("*")
+	}
 	buf.WriteString(typ.Name())
 	buf.WriteString(") {\n")
 	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		ident(depth, buf)
+		buf.WriteString("\t")
+		buf.WriteString(fmt.Sprintf(`["%s"] =>`, typ.Field(i).Name))
+		buf.WriteString("\n")
 		if v.Field(i).CanInterface() {
-			ident(depth, buf)
-			buf.WriteString("\t")
-			buf.WriteString(fmt.Sprintf(`["%s"] =>`, typ.Field(i).Name))
-			buf.WriteString("\n")
-			buf.WriteString(dump(v.Field(i).Interface(), depth+1))
-			buf.WriteString("\n")
+			buf.WriteString(dump(field.Interface(), depth+1))
+		} else {
+			buf.WriteString(dump(Interface(field), depth+1))
 		}
+		buf.WriteString("\n")
 	}
 	for i := 0; i < depth; i++ {
 		buf.WriteString("\t")
 	}
 	buf.WriteString("}")
 	return buf.String()
+}
+
+// Interface copy the unexported field in a struct, so the value could be `Interfaceable`
+func Interface(rv reflect.Value) interface{} {
+	var val interface{}
+	if rv.CanAddr() {
+		val = reflect.NewAt(rv.Type(), unsafe.Pointer(rv.UnsafeAddr())).Elem().Interface()
+	} else {
+		rv2 := reflect.New(rv.Type()).Elem()
+		rv2.Set(rv)
+		val = reflect.NewAt(rv2.Type(), unsafe.Pointer(rv2.UnsafeAddr())).Elem().Interface()
+	}
+	return val
 }
 
 func dumpMap(v reflect.Value, depth int) string {
@@ -243,7 +270,9 @@ func dumpPtr(v reflect.Value, depth int) string {
 	if typ.Kind() != reflect.Ptr {
 		panic("parameter must be reflect.Ptr")
 	}
-
+	if v.Elem().Kind() == reflect.Struct {
+		return dumpStruct(v.Elem(), depth, true)
+	}
 	return dump(v.Elem().Interface(), depth)
 }
 

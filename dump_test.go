@@ -1,4 +1,4 @@
-package vars
+package dump
 
 import (
 	"fmt"
@@ -93,7 +93,9 @@ func TestDumpPtr(t *testing.T) {
 		F2 int
 	}
 
-	Dump(&T{})
+	var a int = 1
+
+	Dump(&T{}, &a)
 }
 
 func TestDumpSlice(t *testing.T) {
@@ -103,11 +105,20 @@ func TestDumpSlice(t *testing.T) {
 }
 
 func TestDumpMap(t *testing.T) {
+	type T struct {
+		F1 int
+		F2 string
+		F3 float64
+	}
+
 	m := make(map[interface{}]interface{})
 	m[100] = "helloworld"
 	m["aaa"] = 1
 	m[1.1] = 1 + 2i
+	m[T{}] = 111
 	Dump(m)
+
+	fmt.Println(m)
 }
 
 func BenchmarkDump(b *testing.B) {
@@ -130,5 +141,16 @@ func BenchmarkDump2(b *testing.B) {
 }
 
 func TestSdump(t *testing.T) {
-	t.Log(Sdump(1,"2",3.123))
+	t.Log(Sdump(1, "2", 3.123))
+}
+
+func TestUnexportedField(t *testing.T) {
+	type T struct {
+		F1 string
+		f2 uint16
+	}
+
+	t0 := &T{"abc", 1}
+
+	Dump(t0)
 }

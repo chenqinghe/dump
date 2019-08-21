@@ -37,7 +37,7 @@ Dump(a, b, c, d, e, f, g, h, i, j, k)
 var str string = "hello, 世界  \t\naaa"
 Dump(str)
 
-//(string:20) "hello, 世界  	
+//(string: 20) "hello, 世界  	
 //  aaa"
 ```
 
@@ -102,13 +102,13 @@ Dump(p)
 
 // struct(Person) {
 //   	["Name"] =>
-//   	(string:3) "aaa"
+//   	(string: 3) "aaa"
 //   	["Age"] =>
 //   	(int) 10
 //   	["Home"] =>
 //   	struct(Home) {
 //   		["Address"] =>
-//   		(string:5) "aaaaa"
+//   		(string: 5) "aaaaa"
 //   	}
 // }
 
@@ -164,7 +164,7 @@ Dump(m)
 /**
 map[interface {}]interface {}{ 
 	[100] => 
-	(string:10) "helloworld"
+	(string: 10) "helloworld"
 	[aaa] => 
 	(int) 1
 	[1.1] => 
