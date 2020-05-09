@@ -34,6 +34,8 @@ func Fdump(w io.Writer, v ...interface{}) (int, error) {
 func dump(v interface{}, depth int) string {
 	var output string
 	switch vv := v.(type) {
+	case bool:
+		output = dumpBool(vv, depth)
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		output = dumpInt(vv, depth)
 	case string:
@@ -58,6 +60,18 @@ func dump(v interface{}, depth int) string {
 	}
 
 	return output
+}
+
+func dumpBool(v bool, depth int) string {
+	buf := bytes.NewBuffer(nil)
+	ident(depth, buf)
+	buf.WriteString("(bool) ")
+	if v {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	return buf.String()
 }
 
 func dumpInt(v interface{}, depth int) string {

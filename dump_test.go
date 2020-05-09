@@ -27,6 +27,13 @@ func TestDumpString(t *testing.T) {
 	Dump(str)
 }
 
+func TestDumpBool(t *testing.T) {
+	var b = true
+	var b2 = false
+
+	Dump(b, b2)
+}
+
 func TestDumpFloat(t *testing.T) {
 	var (
 		a float64 = 1.244211
