@@ -213,6 +213,7 @@ func dumpMap(v reflect.Value, depth int) string {
 		buf.WriteString(dump(v.MapIndex(key).Interface(), depth+1))
 		buf.WriteString("\n")
 	}
+	ident(depth, buf)
 	buf.WriteString("}")
 	return buf.String()
 }
