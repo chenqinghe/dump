@@ -87,6 +87,7 @@ func TestDumpStruct(t *testing.T) {
 		"aaa",
 		10,
 		Home{
+			price: 1,
 			Address: "aaaaa",
 		},
 	}

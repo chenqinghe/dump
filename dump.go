@@ -64,7 +64,7 @@ func dump(v interface{}, depth int) string {
 
 func dumpBool(v bool, depth int) string {
 	buf := bytes.NewBuffer(nil)
-	ident(depth, buf)
+	indent(depth, buf)
 	buf.WriteString("(bool) ")
 	if v {
 		buf.WriteString("true")
@@ -76,7 +76,7 @@ func dumpBool(v bool, depth int) string {
 
 func dumpInt(v interface{}, depth int) string {
 	buf := bytes.NewBuffer(nil)
-	ident(depth, buf)
+	indent(depth, buf)
 	switch t := v.(type) {
 	case int:
 		buf.WriteString("(int) ")
@@ -117,7 +117,7 @@ func dumpInt(v interface{}, depth int) string {
 
 func dumpString(s string, depth int) string {
 	buf := bytes.NewBuffer(nil)
-	ident(depth, buf)
+	indent(depth, buf)
 	buf.WriteString("(string: ")
 	buf.WriteString(strconv.FormatInt(int64(len(s)), 10))
 	buf.WriteString(") ")
@@ -129,7 +129,7 @@ func dumpString(s string, depth int) string {
 
 func dumpFloat(v interface{}, depth int) string {
 	buf := bytes.NewBuffer(nil)
-	ident(depth, buf)
+	indent(depth, buf)
 	switch t := v.(type) {
 	case float32:
 		buf.WriteString("(float32) ")
@@ -145,7 +145,7 @@ func dumpFloat(v interface{}, depth int) string {
 
 func dumpComplex(v interface{}, depth int) string {
 	buf := bytes.NewBuffer(nil)
-	ident(depth, buf)
+	indent(depth, buf)
 	switch t := v.(type) {
 	case complex64:
 		buf.WriteString("(complex64) ")
@@ -176,7 +176,7 @@ func dumpComplex(v interface{}, depth int) string {
 func dumpStruct(v reflect.Value, depth int, isPtr bool) string {
 	typ := v.Type()
 	buf := bytes.NewBuffer(nil)
-	ident(depth, buf)
+	indent(depth, buf)
 	buf.WriteString("struct(")
 	if isPtr {
 		buf.WriteString("*")
@@ -185,14 +185,14 @@ func dumpStruct(v reflect.Value, depth int, isPtr bool) string {
 	buf.WriteString(") {\n")
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
-		ident(depth, buf)
+		indent(depth, buf)
 		buf.WriteString("\t")
-		buf.WriteString(fmt.Sprintf(`["%s"] =>`, typ.Field(i).Name))
+		buf.WriteString(fmt.Sprintf(`[%s] =>`, sprintfStructField(typ.Field(i).Name)))
 		buf.WriteString("\n")
 		if v.Field(i).CanInterface() {
 			buf.WriteString(dump(field.Interface(), depth+1))
 		} else {
-			buf.WriteString(dump(Interface(field), depth+1))
+			buf.WriteString(dump(Interface(v, i), depth+1))
 		}
 		buf.WriteString("\n")
 	}
@@ -203,15 +203,25 @@ func dumpStruct(v reflect.Value, depth int, isPtr bool) string {
 	return buf.String()
 }
 
+func sprintfStructField(field string) string {
+	if t := field[0]; t >= 'a' && t <= 'z' {
+		return fmt.Sprintf("%s:unexported", field)
+	}
+	return field
+}
+
 // Interface copy the unexported field in a struct, so the value could be `Interfaceable`
-func Interface(rv reflect.Value) interface{} {
+func Interface(rv reflect.Value, field int) interface{} {
 	var val interface{}
 	if rv.CanAddr() {
+		rv = rv.Field(field)
 		val = reflect.NewAt(rv.Type(), unsafe.Pointer(rv.UnsafeAddr())).Elem().Interface()
 	} else {
 		rv2 := reflect.New(rv.Type()).Elem()
 		rv2.Set(rv)
-		val = reflect.NewAt(rv2.Type(), unsafe.Pointer(rv2.UnsafeAddr())).Elem().Interface()
+		rf := rv2.Field(field)
+		rf = reflect.NewAt(rf.Type(), unsafe.Pointer(rf.UnsafeAddr())).Elem()
+		val = rf.Interface()
 	}
 	return val
 }
@@ -219,15 +229,15 @@ func Interface(rv reflect.Value) interface{} {
 func dumpMap(v reflect.Value, depth int) string {
 	typ := v.Type()
 	buf := bytes.NewBuffer(nil)
-	ident(depth, buf)
+	indent(depth, buf)
 	buf.WriteString(fmt.Sprintf("map[%s]%s{ \n", typ.Key().String(), typ.Elem().String()))
 	for _, key := range v.MapKeys() {
-		ident(depth+1, buf)
+		indent(depth+1, buf)
 		buf.WriteString(fmt.Sprintf("[%s] => \n", printMapKey(key)))
 		buf.WriteString(dump(v.MapIndex(key).Interface(), depth+1))
 		buf.WriteString("\n")
 	}
-	ident(depth, buf)
+	indent(depth, buf)
 	buf.WriteString("}")
 	return buf.String()
 }
@@ -244,7 +254,7 @@ func printMapKey(v reflect.Value) string {
 func dumpSlice(v reflect.Value, depth int) string {
 	typ := v.Type()
 	buf := bytes.NewBuffer(nil)
-	ident(depth, buf)
+	indent(depth, buf)
 	buf.WriteString("slice(")
 	buf.WriteString(typ.Elem().String())
 	buf.WriteString(": ")
@@ -253,12 +263,12 @@ func dumpSlice(v reflect.Value, depth int) string {
 	buf.WriteString(strconv.FormatInt(int64(v.Cap()), 10))
 	buf.WriteString(") {\n")
 	for i := 0; i < v.Len(); i++ {
-		ident(depth+1, buf)
+		indent(depth+1, buf)
 		buf.WriteString(fmt.Sprintf("[%d] => \n", i))
 		buf.WriteString(dump(v.Index(i).Interface(), depth+1))
 		buf.WriteString("\n")
 	}
-	ident(depth, buf)
+	indent(depth, buf)
 	buf.WriteString("}")
 	return buf.String()
 }
@@ -267,7 +277,7 @@ func dumpChannel(v interface{}, depth int) string {
 	buf := bytes.NewBuffer(nil)
 	typ := reflect.TypeOf(v)
 	val := reflect.ValueOf(v)
-	ident(depth, buf)
+	indent(depth, buf)
 	buf.WriteString("(")
 	buf.WriteString(typ.String())
 	buf.WriteString(": ")
@@ -291,7 +301,7 @@ func dumpPtr(v reflect.Value, depth int) string {
 	return dump(v.Elem().Interface(), depth)
 }
 
-func ident(depth int, writer io.Writer) {
+func indent(depth int, writer io.Writer) {
 	for i := 0; i < depth; i++ {
 		writer.Write([]byte("\t"))
 	}
