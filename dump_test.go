@@ -87,12 +87,32 @@ func TestDumpStruct(t *testing.T) {
 		"aaa",
 		10,
 		Home{
-			price: 1,
+			price:   1,
 			Address: "aaaaa",
 		},
 	}
 
 	Dump(p)
+}
+
+type T struct {
+	F1 int
+	S  *S
+}
+
+type S struct {
+	F2 string
+	T  *T
+}
+
+func TestDumpStructLoop(t *testing.T) {
+	a := &T{F1: 0}
+	b := &S{F2: "hello"}
+	a.S = b
+	b.T = a
+
+	Dump(a)
+
 }
 
 func TestDumpPtr(t *testing.T) {
@@ -153,12 +173,31 @@ func TestSdump(t *testing.T) {
 }
 
 func TestUnexportedField(t *testing.T) {
-	type T struct {
-		F1 string
-		f2 uint16
+	type f2 struct {
+		Name string
 	}
 
-	t0 := &T{"abc", 1}
+	type T struct {
+		F1 string
+		f2 *f2
+		a  *int
+		b  int
+		e  map[string]int
+		f  map[int]int
+		g  []int
+	}
+
+	t0 := &T{
+		F1: "abc",
+		f:  map[int]int{1: 1},
+		g:  []int{1, 2, 3},
+	}
 
 	Dump(t0)
 }
+
+func TestDumpNil(t *testing.T) {
+	var a map[int]int
+	Dump(a)
+}
+
